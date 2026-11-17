@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Unseen Kenya</title>
+<meta name="description" content="Unseen Kenya is a platform for events and experiences that uncover Kenya through its people, culture, food, music and the natural world.">
+<meta name="theme-color" content="#0A0A0B">
+<link rel="icon" href="/img/mono.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap">
+</head>
+<body>
+<header class="nav" id="nav"><div class="wrap">
+  <a class="brand" href="#home" aria-label="Unseen Kenya home"><img src="/img/mono.png" alt=""><b>Unseen Kenya</b></a>
+  <nav class="links" aria-label="Main" id="links"></nav>
+  <div class="navact">
+    <span id="authslot"></span>
+    <button class="iconbtn" data-act="cart" aria-label="Open cart"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11H6.2zM9 8V6a3 3 0 016 0v2"/></svg><span class="count" id="cartcount" hidden>0</span></button>
+    <button class="iconbtn burger" data-act="menu" aria-label="Open menu"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/></svg></button>
+  </div>
+</div></header>
+<main id="app"></main>
+<nav class="tabbar" aria-label="Quick"><div class="in" id="tabs"></div></nav>
+<div class="menu" id="menu" role="dialog" aria-label="Menu"><div class="top"><img src="/img/logo.png" alt="Unseen Kenya" style="height:44px"><button class="iconbtn" data-act="menu-close" aria-label="Close menu"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div id="menulinks"></div><p class="label" style="margin-top:auto;padding-top:30px;letter-spacing:.4em">Discover. Connect. Belong.</p></div>
+<div class="scrim" id="scrim" data-act="close-all"></div>
+<aside class="drawer" id="drawer" aria-label="Cart"></aside>
+<div class="lb" id="lb" role="dialog" aria-label="Photo viewer"></div>
+<div class="modal" id="authmodal" role="dialog" aria-label="Sign in"></div>
+<div class="modal" id="modal" role="dialog" aria-label="Details"></div>
+<div class="toast" id="toast" role="status"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

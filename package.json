@@ -1,0 +1,21 @@
+{
+  "name": "unseen-kenya",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:payments": "node --experimental-strip-types --test tests/paystack.test.mjs",
+    "test:db": "bash tests/run_db_tests.sh"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "leaflet": "^1.9.4",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

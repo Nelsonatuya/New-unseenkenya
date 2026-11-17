@@ -1,0 +1,13 @@
+project_id = "unseen-kenya"
+
+# The webhook is called by Paystack, not by a signed-in user, so it cannot require a Supabase JWT.
+# It authenticates the request itself with Paystack's HMAC signature.
+[functions.paystack-webhook]
+verify_jwt = false
+
+# Guests can check out, so these accept the public anon key as well as a signed-in session.
+[functions.checkout]
+verify_jwt = true
+
+[functions.verify-payment]
+verify_jwt = true
