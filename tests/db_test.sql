@@ -73,6 +73,17 @@ select pg_temp.check('anon sees products', (select count(*) from products)=8);
 select pg_temp.check('anon sees published event + tier', (select count(*) from events)=1 and (select count(*) from ticket_tiers)=1);
 reset role;
 
+-- Hosts can unlist an event without removing its direct page or ticket tiers.
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a'); set role authenticated;
+update events set status='unlisted' where id='11111111-1111-1111-1111-111111111111';
+reset role; set role anon; select pg_temp.as_user(null);
+select pg_temp.check('unlisted event excluded from public listing', (select count(*) from events where status='published')=0);
+select pg_temp.check('unlisted event remains available by direct link', (select count(*) from events where id='11111111-1111-1111-1111-111111111111')=1);
+select pg_temp.check('unlisted ticket tiers remain visible', (select count(*) from ticket_tiers where event_id='11111111-1111-1111-1111-111111111111')=1);
+reset role; select pg_temp.as_user('00000000-0000-0000-0000-00000000000a'); set role authenticated;
+update events set status='published' where id='11111111-1111-1111-1111-111111111111';
+reset role;
+
 -- photos
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000b'); set role authenticated;
 insert into photos(id,event_id,uploader_id,path,caption,status) values ('33333333-3333-3333-3333-333333333333','11111111-1111-1111-1111-111111111111','00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-00000000000b/a.jpg','Hi','approved');

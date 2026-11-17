@@ -10,6 +10,7 @@ Front end: Vite + vanilla JS. Back end: Supabase (Postgres, Auth, Storage, Edge 
 | Accounts | Supabase Auth: email and password, Google sign-in, password reset. Guests can still buy tickets and merch. |
 | Database | Postgres tables for events, ticket tiers, photos, likes, products, variants, orders, tickets. Access is enforced by row level security (`supabase/migrations/003_security.sql`), not by the browser. |
 | Photos | Resized in the browser, stored in a Supabase Storage bucket. Uploads by the event host or an admin go live at once; everyone else's wait for approval in the host dashboard. |
+| Event listings | Hosts can remove an event from public listings without deleting it; its direct page, tickets and host dashboard history remain available. |
 | Payments | Paystack hosted checkout (M-Pesa STK push and card). Prices and stock are decided on the server. A signed webhook and a verify call confirm payment, then tickets are created. |
 | Overselling | Stock and tickets are reserved in one database transaction when checkout starts and released if payment fails or is not completed in 30 minutes. |
 | Map search | Place search (Nominatim) and a draggable pin when creating events. Event pages show the pin with directions. The events page has a map view that sorts by distance from a town you search. |
@@ -23,7 +24,7 @@ You need accounts with Supabase, Paystack (Kenya, KES) and a host for static sit
 ```bash
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase db push          # applies supabase/migrations/001 to 005
+supabase db push          # applies supabase/migrations/001 to 006
 ```
 No CLI? Paste each file from `supabase/migrations/` into the Supabase SQL editor, in numeric order.
 `005_seed_products.sql` adds a starter shop catalogue you can edit later.
