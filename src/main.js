@@ -10,9 +10,11 @@ const route = () => { const h = location.hash.slice(1) || 'home', i = h.indexOf(
 
 function chrome() {
   const { raw } = route(), grp = GROUP[raw] || raw;
-  $('#links').innerHTML = NAV.map(([t, h]) => `<a href="#${h}" class="${grp === h ? 'on' : ''}">${t}</a>`).join('');
-  $('#tabs').innerHTML = TAB.map(([t, h, p]) => `<button data-go="${h}" class="${grp === h ? 'on' : ''}"><svg viewBox="0 0 24 24">${p}</svg>${t}</button>`).join('');
-  $('#menulinks').innerHTML = NAV.concat([[S.user ? 'Account' : 'Sign in', S.user ? 'account' : '__in'], ...(S.user ? [['Host dashboard', 'host']] : []), ...(isAdmin() ? [['Admin', 'admin']] : []), ['Cart', '__cart']]).map(([t, h]) => h === '__cart' ? `<a data-act="cart">${t}</a>` : h === '__in' ? `<a data-act="signin">${t}</a>` : `<a data-go="${h}">${t}</a>`).join('');
+  const nav = NAV.filter(([, h]) => h !== 'create' || isAdmin()), tabs = TAB.filter(([, h]) => h !== 'create' || isAdmin());
+  $('#links').innerHTML = nav.map(([t, h]) => `<a href="#${h}" class="${grp === h ? 'on' : ''}">${t}</a>`).join('');
+  $('#tabs').innerHTML = tabs.map(([t, h, p]) => `<button data-go="${h}" class="${grp === h ? 'on' : ''}"><svg viewBox="0 0 24 24">${p}</svg>${t}</button>`).join('');
+  $('#tabs').style.gridTemplateColumns = `repeat(${tabs.length}, minmax(0, 1fr))`;
+  $('#menulinks').innerHTML = nav.concat([[S.user ? 'Account' : 'Sign in', S.user ? 'account' : '__in'], ...(S.user ? [['Host dashboard', 'host']] : []), ...(isAdmin() ? [['Admin', 'admin']] : []), ['Cart', '__cart']]).map(([t, h]) => h === '__cart' ? `<a data-act="cart">${t}</a>` : h === '__in' ? `<a data-act="signin">${t}</a>` : `<a data-go="${h}">${t}</a>`).join('');
   const init = (S.profile?.full_name || S.user?.email || '?').trim()[0];
   $('#authslot').innerHTML = S.user ? `<div class="usermenu"><button class="avatar" data-act="usermenu" aria-label="Account menu" aria-haspopup="true">${esc(init)}</button><div class="dropdown" id="udrop"><a href="#account">My tickets</a><a href="#host">Host dashboard</a>${isAdmin() ? '<a href="#admin">Admin</a>' : ''}<button data-act="signout">Sign out</button></div></div>` : `<button class="btn sm" data-act="signin">Join / Sign in</button>`;
   saveCart();
@@ -35,7 +37,7 @@ function paint(v) { v = v || V[route().name] || V.home; $('#app').innerHTML = v.
 function repaint() { const y = scrollY, a = document.activeElement?.id; paint(); scrollTo(0, y); if (a) $('#' + a)?.focus?.(); }
 bind(render, repaint);
 act({ reload: () => render() });
-const footer = () => `<footer><div class="wrap"><div class="fgrid"><div><img class="big" src="/img/logo.png" alt="Unseen Kenya"><p class="muted" style="max-width:28ch;font-family:var(--display);font-style:italic;font-size:20px">Beyond what meets the eye.</p></div><div><h4>Explore</h4><ul><li><a href="#events">Events</a></li><li><a href="#gallery">Gallery</a></li><li><a href="#shop">Shop</a></li><li><a href="#about">About</a></li></ul></div><div><h4>Hosts</h4><ul><li><a href="#create">Create an event</a></li><li><a href="#host">Dashboard</a></li><li><a href="#gallery">Upload photos</a></li></ul></div><div><h4>Contact</h4><p class="muted" style="font-size:14px">Nairobi, Kenya</p></div></div><div class="fine"><span class="signoff">Discover. Connect. Belong.</span><span>© ${new Date().getFullYear()} Unseen Kenya</span></div></div></footer>`;
+const footer = () => `<footer><div class="wrap"><div class="fgrid"><div><img class="big" src="/img/logo.png" alt="Unseen Kenya"><p class="muted" style="max-width:28ch;font-family:var(--display);font-style:italic;font-size:20px">Beyond what meets the eye.</p></div><div><h4>Explore</h4><ul><li><a href="#events">Events</a></li><li><a href="#gallery">Gallery</a></li><li><a href="#shop">Shop</a></li><li><a href="#about">About</a></li></ul></div><div><h4>Hosts</h4><ul>${isAdmin() ? '<li><a href="#create">Create an event</a></li>' : ''}<li><a href="#host">Dashboard</a></li><li><a href="#gallery">Upload photos</a></li></ul></div><div><h4>Contact</h4><p class="muted" style="font-size:14px">Nairobi, Kenya</p></div></div><div class="fine"><span class="signoff">Discover. Connect. Belong.</span><span>© ${new Date().getFullYear()} Unseen Kenya</span></div></div></footer>`;
 function wireDrop() { $$('.drop').forEach(d => { ['dragenter', 'dragover'].forEach(t => d.addEventListener(t, e => { e.preventDefault(); d.classList.add('over'); })); ['dragleave', 'drop'].forEach(t => d.addEventListener(t, e => { e.preventDefault(); d.classList.remove('over'); })); d.addEventListener('drop', e => addFiles(e.dataTransfer.files, d.dataset.ctx)); }); }
 
 /* ---------- delegated events ---------- */

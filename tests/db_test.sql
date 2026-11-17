@@ -9,11 +9,12 @@ create or replace function pg_temp.as_user(u uuid) returns void language plpgsql
 insert into auth.users(id,email) values ('00000000-0000-0000-0000-00000000000a','host@x.co'),('00000000-0000-0000-0000-00000000000b','guest@x.co'),('00000000-0000-0000-0000-00000000000c','admin@x.co');
 update profiles set role='admin' where id='00000000-0000-0000-0000-00000000000c';
 
--- host creates event + tiers
-select pg_temp.as_user('00000000-0000-0000-0000-00000000000a'); set role authenticated;
+-- Existing host-owned event fixture; regular users can still manage events they own.
+set role service_role;
 insert into events(id,host_id,title,pillar,description,starts_at,venue,town,lat,lng) values ('11111111-1111-1111-1111-111111111111','00000000-0000-0000-0000-00000000000a','Test Dusk Walk','Natural World','A description long enough to pass.', now()+interval '10 days','Gate B','Nairobi',-1.24,36.83);
+reset role; select pg_temp.as_user('00000000-0000-0000-0000-00000000000a'); set role authenticated;
 insert into ticket_tiers(event_id,name,price_kes,quantity) values ('11111111-1111-1111-1111-111111111111','General',1500,3);
-select pg_temp.check('host can insert event+tier', (select count(*) from ticket_tiers)=1);
+select pg_temp.check('host can manage tiers on existing event', (select count(*) from ticket_tiers)=1);
 reset role; update ticket_tiers set id='22222222-2222-2222-2222-222222222222'; select pg_temp.as_user('00000000-0000-0000-0000-00000000000a'); set role authenticated;
 do $$ begin update ticket_tiers set sold=3 where id='22222222-2222-2222-2222-222222222222'; exception when others then null; end $$;
 select pg_temp.check('host cannot change sold', (select sold from ticket_tiers)=0, 'sold='||(select sold from ticket_tiers));
@@ -26,8 +27,13 @@ reset role;
 select pg_temp.check('guest cannot edit others event', (select title from events)='Test Dusk Walk');
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000b'); set role authenticated;
 select pg_temp.check('guest cannot create event as someone else', (select count(*) from (select 1) q)=1);
+do $$ begin insert into events(host_id,title,pillar,description,starts_at,venue,town) values (auth.uid(),'Guest event','Food','A description long enough to pass.',now()+interval '1 day','v','t'); perform pg_temp.check('non-admin cannot create own event', false); exception when others then perform pg_temp.check('non-admin cannot create own event', true); end $$;
 do $$ begin insert into events(host_id,title,pillar,description,starts_at,venue,town) values ('00000000-0000-0000-0000-00000000000a','Forged event','Food','A description long enough to pass.',now()+interval '1 day','v','t'); perform pg_temp.check('forged host_id blocked', false); exception when others then perform pg_temp.check('forged host_id blocked', true); end $$;
 do $$ begin update profiles set role='admin' where id='00000000-0000-0000-0000-00000000000b'; perform pg_temp.check('role escalation blocked', (select role from profiles where id='00000000-0000-0000-0000-00000000000b')='user'); exception when others then perform pg_temp.check('role escalation blocked', true); end $$;
+reset role;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c'); set role authenticated;
+insert into events(host_id,title,pillar,description,starts_at,venue,town,status) values (auth.uid(),'Admin draft','Food','A description long enough to pass.',now()+interval '1 day','v','t','draft');
+select pg_temp.check('admin can create event', (select count(*) from events where title='Admin draft')=1);
 reset role;
 
 -- orders: reserve, oversell, release, pay
