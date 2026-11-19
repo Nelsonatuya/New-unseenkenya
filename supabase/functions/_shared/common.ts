@@ -1,14 +1,32 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-export const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("SITE_URL") ?? "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Vary": "Origin",
+const siteUrl = (Deno.env.get("SITE_URL") ?? "").replace(/\/+$/, "");
+
+const isLocalDevOrigin = (origin: string) => {
+  try {
+    const url = new URL(origin);
+    return url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
+  } catch {
+    return false;
+  }
 };
 
-export const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+export const corsHeaders = (req: Request) => {
+  const origin = req.headers.get("Origin");
+  const allowedOrigin = origin && (origin === siteUrl || isLocalDevOrigin(origin))
+    ? origin
+    : siteUrl || "*";
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+};
+
+export const json = (req: Request, body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(req), "Content-Type": "application/json" } });
 
 /** Service-role client. It bypasses row level security, so it only ever runs inside these functions. */
 export const admin = () =>
@@ -34,7 +52,7 @@ export async function orderView(db: ReturnType<typeof admin>, reference: string)
   if (!order) return null;
   const [{ data: items }, { data: tickets }] = await Promise.all([
     db.from("order_items").select("kind,title,detail,unit_price_kes,qty").eq("order_id", order.id),
-    db.from("tickets").select("code,holder_name,event_id,events(title,starts_at,venue,town)").eq("order_id", order.id),
+    db.from("tickets").select("id,code,holder_name,event_id,events(title,starts_at,venue,town)").eq("order_id", order.id),
   ]);
   return {
     reference: order.reference, status: order.status, total_kes: order.total_kes, shipping_kes: order.shipping_kes,

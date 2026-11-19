@@ -121,5 +121,6 @@ export async function uploadImage(file, folder) {
   const { error } = await sb.storage.from('media').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
   if (error) throw error; return path;
 }
-export const qr = text => QRCode.toDataURL(text, { margin: 1, width: 240, color: { dark: '#0A0A0B', light: '#FFFFFF' } });
+export const ticketUrl = ticketId => { const url = new URL(location.pathname, location.origin); url.hash = `ticket-${encodeURIComponent(ticketId)}`; return url.href; };
+export const qr = ticketId => QRCode.toDataURL(ticketUrl(ticketId), { margin: 1, width: 240, color: { dark: '#0A0A0B', light: '#FFFFFF' } });
 export const copy = t => { try { navigator.clipboard.writeText(t).then(() => toast('Link copied'), () => toast('Copy the link from the address bar')); } catch { toast('Copy the link from the address bar'); } };

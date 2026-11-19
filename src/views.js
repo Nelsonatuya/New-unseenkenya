@@ -255,7 +255,7 @@ V.order = {
     const run = async () => { const { data, error } = await sb.functions.invoke('verify-payment', { body: { reference: ref } }); return error ? { error: await errMsg(error) } : data; };
     let d = await run();
     for (let i = 0; i < 12 && d.status === 'pending'; i++) { await wait(4000); d = await run(); if (!location.hash.includes(ref)) break; }
-    if (d.status === 'paid') { S.cart = []; saveCart(); d.qrs = await Promise.all((d.tickets || []).map(t => qr(t.code))); }
+    if (d.status === 'paid') { S.cart = []; saveCart(); d.qrs = await Promise.all((d.tickets || []).map(t => qr(t.id))); }
     return d;
   },
   html(d) {
@@ -273,13 +273,35 @@ V.order = {
 };
 act({ refresh: () => render() });
 
+/* ---------- public ticket verification ---------- */
+V.ticket = {
+  async load(code) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code)) return { error: 'This ticket link is not valid.' };
+    const { data, error } = await sb.functions.invoke('ticket-details', { body: { ticket_id: code } });
+    return error ? { error: await errMsg(error) } : data;
+  },
+  html(d) {
+    if (!d || d.error) return `<div class="wrap" style="padding-block:80px;max-width:640px">${empty(esc(d?.error || 'Ticket details are unavailable.'), '<a class="btn" href="#events">Browse events</a>')}</div>`;
+    const event = d.event, date = event?.starts_at ? DP(event.starts_at) : null;
+    return `<div class="wrap" style="max-width:680px;padding-block:60px 80px"><span class="label v">${d.checked_in_at ? 'Already checked in' : 'Ticket verified'}</span><h1 style="font-size:clamp(40px,7vw,72px);margin:12px 0 24px">${esc(event?.title || 'Event ticket')}</h1><div class="panel">
+      <div class="sumline"><span class="muted">Ticket holder</span><b>${esc(d.holder_name || 'Guest')}</b></div>
+      <div class="sumline"><span class="muted">Ticket type</span><b>${esc(d.tier_name || 'Admission')}</b></div>
+      <div class="sumline"><span class="muted">Price</span><b>${kes(d.price_kes ?? 0)}</b></div>
+      ${date ? `<div class="sumline"><span class="muted">Date and time</span><b>${date.w} ${date.d} ${date.m} · ${date.t}</b></div>` : ''}
+      ${event?.venue ? `<div class="sumline"><span class="muted">Venue</span><b>${esc(event.venue)}${event.town ? ', ' + esc(event.town) : ''}</b></div>` : ''}
+      <div class="sumline"><span class="muted">Ticket code</span><code>${esc(d.code)}</code></div>
+      <p class="muted" style="margin-top:20px">This page confirms a paid ticket. Present it to the event host for check-in.</p>
+    </div><p style="margin-top:20px"><a class="btn ghost" href="#events">Browse events</a></p></div>`;
+  }
+};
+
 /* ---------- account ---------- */
 const AT = { tab: 'tickets' };
 V.account = {
   async load() {
     if (!S.user) return null;
     const [t, o] = await Promise.all([sb.from('tickets').select('id,code,holder_name,checked_in_at,events(id,title,starts_at,venue,town),orders!inner(user_id)').eq('orders.user_id', S.user.id).order('created_at', { ascending: false }), sb.from('orders').select('*, order_items(title,detail,qty,unit_price_kes)').eq('user_id', S.user.id).order('created_at', { ascending: false })]);
-    const tickets = t.data || []; const qrs = await Promise.all(tickets.map(x => qr(x.code))); return { tickets, qrs, orders: o.data || [] };
+    const tickets = t.data || []; const qrs = await Promise.all(tickets.map(x => qr(x.id))); return { tickets, qrs, orders: o.data || [] };
   },
   html(d) {
     if (!d) return needSignIn('Sign in to see your tickets, orders and events.');
@@ -302,7 +324,7 @@ const validate = s => { const e = {}, d = DR; if (s === 1) { if (d.title.trim().
   if (s === 3) { if (d.free) { if (!(d.cap > 0)) e.cap = 'Capacity must be at least 1.'; } else d.tiers.forEach((t, i) => { if (!t.name.trim()) e['tn' + i] = 'Name this tier.'; if (!(t.price >= 0) || t.price === '') e['tp' + i] = 'Enter a price.'; if (!(t.qty > 0)) e['tq' + i] = 'At least 1.'; if (t.sold > t.qty) e['tq' + i] = `At least ${t.sold} (already sold).`; }); }
   return e; };
 const fld = (k, l, inner) => `<div class="field ${errs[k] ? 'bad' : ''}"><label for="d-${k}">${l}</label>${inner}${errs[k] ? `<span class="err" role="alert">${errs[k]}</span>` : ''}</div>`;
-const evUploadHTML = () => `<p class="muted">Choose a cover image, then add any photos you already have. Guests can add more after the event.</p>${uploaderHTML('ev', DR.files)}<div class="field" style="margin-top:22px"><span class="lab">Cover image</span><div class="starters">${DR.coverFile ? `<button type="button" class="on" aria-label="Your cover"><img src="${DR.coverFile.src}" alt=""></button>` : ''}${DR.files.map(f => `<button type="button" data-act="cover-up" data-id="${f.id}" aria-label="Use as cover"><img src="${f.src}" alt=""></button>`).join('')}${['dusk', 'sun', 'lake', 'deer', 'bird', 'tower'].map(k => `<button type="button" class="${!DR.coverFile && DR.coverPath === 'site:' + k ? 'on' : ''}" data-act="cover" data-k="${k}" aria-label="Starter ${k}"><img src="/img/${k}.jpg" alt=""></button>`).join('')}</div></div>`;
+const evUploadHTML = () => `<p class="muted">Upload a cover image or choose one of the event photos below. Guests can add more photos after the event.</p><div class="field"><label for="cover-file">Upload cover image</label><input id="cover-file" type="file" accept="image/*" data-cover><span class="muted" style="font-size:12px">JPG, PNG or WebP. The image is resized before upload.</span></div>${uploaderHTML('ev', DR.files)}<div class="field" style="margin-top:22px"><span class="lab">Cover image</span><div class="starters">${DR.coverFile ? `<button type="button" class="on" aria-label="Your cover"><img src="${DR.coverFile.src}" alt=""></button>` : ''}${DR.files.map(f => `<button type="button" data-act="cover-up" data-id="${f.id}" aria-label="Use as cover"><img src="${f.src}" alt=""></button>`).join('')}${['dusk', 'sun', 'lake', 'deer', 'bird', 'tower'].map(k => `<button type="button" class="${!DR.coverFile && DR.coverPath === 'site:' + k ? 'on' : ''}" data-act="cover" data-k="${k}" aria-label="Starter ${k}"><img src="/img/${k}.jpg" alt=""></button>`).join('')}</div></div>`;
 function stepBody() {
   const d = DR;
   if (step === 1) return `${fld('title', 'Event name', `<input type="text" id="d-title" data-d="title" maxlength="120" value="${esc(d.title)}" placeholder="e.g. Dusk Listening in Karura">`)}<div class="field ${errs.pillar ? 'bad' : ''}"><span class="lab" id="pl">Pillar</span><div class="chips" role="group" aria-labelledby="pl">${PNAMES.map(p => `<button type="button" class="chip ${d.pillar === p ? 'on' : ''}" data-act="dpillar" data-p="${p}">${p}</button>`).join('')}</div>${errs.pillar ? `<span class="err" role="alert">${errs.pillar}</span>` : ''}</div>${fld('description', 'Description', `<textarea id="d-description" data-d="description" placeholder="What will people see, hear, taste or learn?">${esc(d.description)}</textarea>`)}`;
@@ -341,11 +363,18 @@ V.create = {
 };
 export const onDraft = el => { const k = el.dataset.d; DR[k] = el.type === 'number' ? +el.value : el.value; save(); prev(); };
 export const onTier = el => { DR.tiers[+el.dataset.tier][el.dataset.k] = el.type === 'number' ? +el.value : el.value; save(); prev(); };
+export function onCoverFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) return toast('Choose an image file for the event cover.');
+  if (DR.coverFile && !DR.files.includes(DR.coverFile)) URL.revokeObjectURL(DR.coverFile.src);
+  DR.coverFile = { file, src: URL.createObjectURL(file) };
+  save(); $('#evupload').innerHTML = evUploadHTML(); prev();
+}
 act({
   dpillar: el => { DR.pillar = el.dataset.p; save(); render(false); }, dfree: el => { DR.free = el.checked; save(); render(false); },
   addtier: () => { DR.tiers.push({ name: 'New tier', price: 1000, qty: 20 }); save(); render(false); }, rmtier: el => { DR.tiers.splice(+el.dataset.i, 1); save(); render(false); },
-  cover: el => { DR.coverPath = 'site:' + el.dataset.k; DR.coverFile = null; save(); $('#evupload').innerHTML = evUploadHTML(); prev(); },
-  'cover-up': el => { const f = DR.files.find(x => x.id === el.dataset.id); DR.coverFile = f; $('#evupload').innerHTML = evUploadHTML(); prev(); },
+  cover: el => { if (DR.coverFile && !DR.files.includes(DR.coverFile)) URL.revokeObjectURL(DR.coverFile.src); DR.coverPath = 'site:' + el.dataset.k; DR.coverFile = null; save(); $('#evupload').innerHTML = evUploadHTML(); prev(); },
+  'cover-up': el => { const f = DR.files.find(x => x.id === el.dataset.id); if (DR.coverFile && !DR.files.includes(DR.coverFile)) URL.revokeObjectURL(DR.coverFile.src); DR.coverFile = f; $('#evupload').innerHTML = evUploadHTML(); prev(); },
   step: el => { const t = +el.dataset.s; if (t > step) for (let s = step; s < t; s++) { const e = validate(s); if (Object.keys(e).length) { step = s; errs = e; return render(false); } } errs = {}; step = t; render(false); scrollTo(0, 0); },
   next: () => { const e = validate(step); errs = e; if (Object.keys(e).length) { render(false); return $('.field.bad input,.field.bad textarea')?.focus(); } step++; render(false); scrollTo(0, 0); },
   back: () => { errs = {}; step--; render(false); scrollTo(0, 0); },

@@ -4,14 +4,14 @@ import { admin, corsHeaders, json, orderView, paystackSecret } from "../_shared/
 import { verifyTransaction } from "../_shared/paystack.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
+  if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
   try {
     const { reference } = await req.json();
-    if (typeof reference !== "string" || !/^UK-[A-Z0-9]{8}$/.test(reference)) return json({ error: "Unknown order." }, 400);
+    if (typeof reference !== "string" || !/^UK-[A-Z0-9]{8}$/.test(reference)) return json(req, { error: "Unknown order." }, 400);
     const db = admin();
     let view = await orderView(db, reference);
-    if (!view) return json({ error: "Unknown order." }, 404);
+    if (!view) return json(req, { error: "Unknown order." }, 404);
 
     if (view.status === "pending" || view.status === "expired") {
       const tx = await verifyTransaction(paystackSecret(), reference).catch(() => null);
@@ -23,9 +23,9 @@ Deno.serve(async (req) => {
       }
       view = (await orderView(db, reference))!;
     }
-    return json(view);
+    return json(req, view);
   } catch (e) {
     console.error(e);
-    return json({ error: "Could not check the payment. Try again in a moment." }, 500);
+    return json(req, { error: "Could not check the payment. Try again in a moment." }, 500);
   }
 });

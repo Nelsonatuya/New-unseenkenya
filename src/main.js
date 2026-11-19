@@ -1,6 +1,6 @@
 import './styles.css';
 import { sb, configured, S, $, $$, esc, act, actions, toast, go, loadUser, openAuth, drawer, saveCart, isAdmin, copy } from './lib/core.js';
-import { V, bind, onChange, onSort, onCheckoutInput, onDelivery, onDraft, onTier, gcap, gev, addFiles, lbKeys, lbSwipe } from './views.js';
+import { V, bind, onChange, onSort, onCheckoutInput, onDelivery, onDraft, onTier, onCoverFile, gcap, gev, addFiles, lbKeys, lbSwipe } from './views.js';
 
 const NAV = [['Explore', 'home'], ['Events', 'events'], ['Gallery', 'gallery'], ['Shop', 'shop'], ['About', 'about'], ['Host an Event', 'create']];
 const TAB = [['Home', 'home', '<path d="M4 11l8-7 8 7v9H4zM10 20v-6h4v6"/>'], ['Events', 'events', '<rect x="4" y="5" width="16" height="15"/><path d="M4 10h16M9 3v4M15 3v4"/>'], ['Gallery', 'gallery', '<rect x="3" y="4" width="18" height="16"/><circle cx="9" cy="10" r="2"/><path d="M3 18l6-5 4 3 3-2 5 4"/>'], ['Shop', 'shop', '<path d="M5 8h14l-1.2 11H6.2zM9 8V6a3 3 0 016 0v2"/>'], ['Host', 'create', '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>']];
@@ -48,7 +48,7 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.usermenu')) $('#udrop')?.classList.remove('open');
 });
 document.addEventListener('input', e => { const t = e.target; if (t.dataset.d) onDraft(t); else if (t.dataset.tier !== undefined) onTier(t); else if (t.dataset.ucap) gcap(t); else if (t.dataset.c) onCheckoutInput(t); });
-document.addEventListener('change', e => { const t = e.target; if (t.dataset.f) onChange.f(t); else if (t.dataset.uev) gev(t); else if (t.dataset.sort !== undefined) onSort(t); else if (t.matches('[data-dl]')) onDelivery(t); else if (t.matches('input[type=file][data-ctx]')) { addFiles(t.files, t.dataset.ctx); t.value = ''; } else if (t.dataset.act === 'dfree') actions.dfree(t); });
+document.addEventListener('change', e => { const t = e.target; if (t.dataset.f) onChange.f(t); else if (t.dataset.uev) gev(t); else if (t.dataset.sort !== undefined) onSort(t); else if (t.matches('[data-dl]')) onDelivery(t); else if (t.matches('input[type=file][data-cover]')) { onCoverFile(t.files[0]); t.value = ''; } else if (t.matches('input[type=file][data-ctx]')) { addFiles(t.files, t.dataset.ctx); t.value = ''; } else if (t.dataset.act === 'dfree') actions.dfree(t); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { actions['close-all'](); $('#authmodal').classList.remove('open'); $('#modal').classList.remove('open'); $('#lb').classList.remove('open'); } lbKeys(e); if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=link][data-go]')) { e.preventDefault(); go(e.target.dataset.go); } });
 let tx = 0; $('#lb').addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true }); $('#lb').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 60) lbSwipe(dx < 0 ? 1 : -1); });
 addEventListener('hashchange', () => { scrollTo(0, 0); render(); });

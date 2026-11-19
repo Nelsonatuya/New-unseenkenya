@@ -40,11 +40,13 @@ In Supabase, Authentication:
 2. Set the webhook URL (Settings > API Keys & Webhooks) to `https://YOUR_PROJECT_REF.supabase.co/functions/v1/paystack-webhook`.
 3. Deploy the functions and store the secrets:
 ```bash
-supabase secrets set PAYSTACK_SECRET_KEY=sk_test_xxx SITE_URL=https://yourdomain.co.ke
+supabase secrets set PAYSTACK_SECRET_KEY=sk_test_xxx SITE_URL=https://unseenkenya.vercel.app
 supabase functions deploy checkout
 supabase functions deploy verify-payment
+supabase functions deploy ticket-details
 supabase functions deploy paystack-webhook --no-verify-jwt
 ```
+Set `SITE_URL` to the exact production site origin (not `localhost`); it is used for CORS and as the Paystack return URL. The checkout and payment-verification functions also accept local `http://localhost`/`http://127.0.0.1` development origins.
 The secret key never goes in the front end.
 
 ### 4. Front end
@@ -78,6 +80,6 @@ The database tests cover overselling, double payment, late payment, wrong amount
 - **Emails:** Paystack emails a receipt. Tickets are shown on the confirmation page and under Account; there is no ticket email yet. Adding one means calling an email service (for example Resend) from `_shared` once an order is paid.
 - **Place search** uses the free Nominatim service, which allows light use only. Before heavy traffic, point `VITE_GEOCODER_URL` at a Nominatim-compatible provider.
 - **Photo upload** shows a status per photo rather than a progress bar.
-- **Ticket scanning:** each ticket has a QR code and a check-in button under Host dashboard > Guests. A camera scanner is not built.
+- **Ticket scanning:** each ticket QR opens a verification page with the holder, event, ticket tier and price. Hosts can check guests in under Host dashboard > Guests; a camera scanner is not built.
 - **Rate limiting:** add Supabase or Cloudflare rate limits on the `checkout` function before launch to deter abuse.
 - The poster crops in `public/img` are low resolution. Replace them with real photography (keep the file names, or point events at uploaded covers).
